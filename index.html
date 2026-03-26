@@ -55,7 +55,6 @@
         #fim-img { width: 100%; height: 100%; object-fit: contain; position: absolute; }
         #msg-vitoria { position: relative; z-index: 600; font-size: 30px; color: #0f0; text-shadow: 2px 2px #000; font-weight: bold; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; display: none; }
 
-        /* Susto Rápido (Ghost Jumpscare) */
         #ghost-jumpscare {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; display: none; z-index: 400; justify-content: center; align-items: center;
@@ -75,11 +74,11 @@
             <p>• <b>BARULHO:</b> Vigie a CÂMERA 2 por 4 segundos.</p>
             <p>• <b>RISCO:</b> Se ver o risco na Câm 1, vigie a CÂMERA 3 por 4 segundos.</p>
             <p>• <b>SISTEMA:</b> Se a energia acabar, você morre.</p>
-            <p style="color: red; margin-top: 5px;">MODO DIFÍCIL: 11s para morrer | 7s fora da Câm 1 | Sutos Fantasmas.</p>
+            <p id="status-carregamento" style="color: #0f0; margin-top: 10px;">Carregando arquivos...</p>
         </div>
         <div class="botoes-inicio">
-            <button class="btn-start normal" onclick="iniciarJogo(false)">MODO NORMAL</button>
-            <button class="btn-start dificil" onclick="iniciarJogo(true)">MODO DIFÍCIL</button>
+            <button id="btn-normal" class="btn-start normal" onclick="iniciarJogo(false)" disabled>MODO NORMAL</button>
+            <button id="btn-dificil" class="btn-start dificil" onclick="iniciarJogo(true)" disabled>MODO DIFÍCIL</button>
         </div>
     </div>
 
@@ -120,20 +119,39 @@
     </div>
 
     <script>
+        // --- SISTEMA DE PRÉ-CARREGAMENTO ---
+        const imagensParaCarregar = [
+            'sala1.jpg', 'sala2.jpg', 'sala3.jpg', 
+            'salabad2.jpg', 'salabad3.jpg', 'risco.png', 
+            'jumpscare.jpg', 'vitoria.jpg'
+        ];
+
+        let imagensCarregadas = 0;
+        imagensParaCarregar.forEach(src => {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => {
+                imagensCarregadas++;
+                if (imagensCarregadas === imagensParaCarregar.length) {
+                    document.getElementById('status-carregamento').innerText = "Tudo pronto! Escolha sua noite.";
+                    document.getElementById('btn-normal').disabled = false;
+                    document.getElementById('btn-dificil').disabled = false;
+                }
+            };
+        });
+
+        // --- LÓGICA DO JOGO ---
         let tempoRestante = 180;
         let salaAtual = "sala1";
         let jogoAtivo = false;
         let modoManutencao = false;
         let nivelSistema = 100;
         let timerForaSala1 = 0;
-        
-        // Configurações de Dificuldade
         let modoDificilAtivo = false;
         let tempoMaxMorte = 20;
         let limiteForaSala1 = 10;
         let drenoEnergia = 1.2;
         let chanceAparecer = 0.06;
-
         let inimigo2Ativo = false;
         let inimigo3Ativo = false;
         let timerMorte2 = 0;
@@ -245,16 +263,13 @@
                 nivelSistema -= drenoEnergia;
                 atualizarInterface();
 
-                // Dificuldade progressiva (Normal apenas)
                 if (!modoDificilAtivo) {
                     if (tempoRestante <= 120 && tempoRestante > 60) { tempoMaxMorte = 15; chanceAparecer = 0.10; }
                     if (tempoRestante <= 60) { tempoMaxMorte = 12; chanceAparecer = 0.20; }
                 }
 
-                // Susto Fantasma Aleatório no Difícil
                 if (modoDificilAtivo && Math.random() < 0.05) { sustoFantasma(); }
 
-                // Regra Sala 1
                 if (salaAtual !== "sala1" || modoManutencao) {
                     timerForaSala1++;
                     document.getElementById('aviso-presenca').style.display = "block";
@@ -264,11 +279,9 @@
                     document.getElementById('aviso-presenca').style.display = "none";
                 }
 
-                // Spawns
                 if (!inimigo2Ativo && Math.random() < chanceAparecer) { inimigo2Ativo = true; somBatida.play(); }
                 if (!inimigo3Ativo && Math.random() < chanceAparecer) { inimigo3Ativo = true; }
 
-                // Expulsão
                 if (!modoManutencao) {
                     if (inimigo2Ativo && salaAtual === "sala2") {
                         tempoEncarando++;
@@ -298,6 +311,7 @@
     </script>
 </body>
 </html>
+
 
 
 
