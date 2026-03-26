@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matheus em Busca do Robux - Hardcore</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: white; font-family: 'Courier New', monospace; overflow: hidden; touch-action: manipulation; }
+        
+        /* Menu Inicial */
+        #menu-inicial {
+            position: absolute; width: 100vw; height: 100vh; background: #111;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 1000; padding: 20px; text-align: center;
+        }
+        #instrucoes {
+            max-width: 600px; background: rgba(0,0,0,0.5); padding: 15px; 
+            border: 1px solid #444; margin-bottom: 20px; font-size: 12px; line-height: 1.3;
+        }
+        .botoes-inicio { display: flex; gap: 20px; }
+        .btn-start { padding: 15px 30px; font-size: 18px; color: #fff; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .normal { background: #060; }
+        .dificil { background: #900; }
+
+        /* Jogo */
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #000; display: none; }
+        #tela-camera { width: 100%; height: 100%; object-fit: cover; }
+
+        #ui-topo {
+            position: absolute; top: 10px; left: 10px; z-index: 100;
+            background: rgba(0,0,0,0.8); padding: 8px; border: 1px solid #444; font-size: 14px;
+        }
+
+        .area-botoes-esf { position: absolute; left: 0; top: 0; width: 25%; height: 100%; display: flex; flex-direction: column; justify-content: center; z-index: 50; }
+        .area-botoes-dir { position: absolute; right: 0; top: 0; width: 25%; height: 100%; display: flex; flex-direction: column; justify-content: center; z-index: 50; }
+        .btn-cam { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; margin: 8px; padding: 20px 5px; border-radius: 5px; font-size: 11px; }
+        .btn-manut { background: rgba(139, 0, 0, 0.4); border: 1px solid #f00; color: white; margin: 10px; padding: 30px 5px; border-radius: 5px; font-size: 11px; }
+
+        #painel-manutencao {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #050505; display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 200;
+        }
+        .barra-bg { width: 60%; height: 25px; background: #111; border: 2px solid #333; margin: 20px; }
+        #barra-fill { width: 100%; height: 100%; background: #0f0; }
+
+        #risco-img { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 180px; display: none; z-index: 10; pointer-events: none; }
+
+        /* Fim de Jogo */
+        #fim-tela {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: none; z-index: 500; justify-content: center; align-items: center; flex-direction: column;
+        }
+        #fim-img { width: 100%; height: 100%; object-fit: contain; position: absolute; }
+        #msg-vitoria { position: relative; z-index: 600; font-size: 30px; color: #0f0; text-shadow: 2px 2px #000; font-weight: bold; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; display: none; }
+
+        /* Susto Rápido (Ghost Jumpscare) */
+        #ghost-jumpscare {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: none; z-index: 400; justify-content: center; align-items: center;
+        }
+        
+        .tremida { animation: shake 0.05s infinite; }
+        @keyframes shake { 0% { transform: translate(5px, 5px); } 50% { transform: translate(-5px, -5px); } 100% { transform: translate(0, 0); } }
+    </style>
+</head>
+<body>
+
+    <div id="menu-inicial">
+        <h1 style="color: #f00; margin-bottom: 10px;">A VINGANÇA DO MATHEUS</h1>
+        <div id="instrucoes">
+            <p style="color: yellow; margin-bottom: 10px;">HISTÓRIA: Você roubou o Robux do Matheus!</p>
+            <p>• <b>CÂMERA 1:</b> Não saia por muito tempo ou ele te pega.</p>
+            <p>• <b>BARULHO:</b> Vigie a CÂMERA 2 por 4 segundos.</p>
+            <p>• <b>RISCO:</b> Se ver o risco na Câm 1, vigie a CÂMERA 3 por 4 segundos.</p>
+            <p>• <b>SISTEMA:</b> Se a energia acabar, você morre.</p>
+            <p style="color: red; margin-top: 5px;">MODO DIFÍCIL: 11s para morrer | 7s fora da Câm 1 | Sutos Fantasmas.</p>
+        </div>
+        <div class="botoes-inicio">
+            <button class="btn-start normal" onclick="iniciarJogo(false)">MODO NORMAL</button>
+            <button class="btn-start dificil" onclick="iniciarJogo(true)">MODO DIFÍCIL</button>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="ui-topo">
+            <div>HORA: <span id="timer">03:00</span> | BATERIA: <span id="porcento">100</span>%</div>
+            <div id="aviso-presenca" style="display:none; color:red;">CUIDADO! VOLTE PARA CÂMERA 1: <span id="seg-presenca">10</span>s</div>
+        </div>
+
+        <img id="risco-img" src="risco.png">
+        <img id="tela-camera" src="sala1.jpg">
+
+        <div class="area-botoes-esf">
+            <button class="btn-cam" onclick="mudarSala('sala1')">CÂMERA 1</button>
+            <button class="btn-cam" onclick="mudarSala('sala2')">CÂMERA 2</button>
+            <button class="btn-cam" onclick="mudarSala('sala3')">CÂMERA 3</button>
+        </div>
+
+        <div class="area-botoes-dir">
+            <button class="btn-manut" onclick="alternarModo()">MANUTENÇÃO</button>
+        </div>
+
+        <div id="painel-manutencao">
+            <h2 style="color: #0f0;">SISTEMA DE ENERGIA</h2>
+            <div class="barra-bg"><div id="barra-fill"></div></div>
+            <button style="padding: 30px; background: #000; color: #0f0; border: 2px solid #0f0;" onclick="cliqueCarregar()">REPARAR (+2%)</button>
+            <button style="margin-top: 20px; padding: 10px;" onclick="alternarModo()">VOLTAR</button>
+        </div>
+
+        <div id="ghost-jumpscare">
+            <img src="jumpscare.jpg" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+
+        <div id="fim-tela">
+            <div id="msg-vitoria">PARABÉNS POR TER GANHADO!</div>
+            <img id="fim-img" src="">
+        </div>
+    </div>
+
+    <script>
+        let tempoRestante = 180;
+        let salaAtual = "sala1";
+        let jogoAtivo = false;
+        let modoManutencao = false;
+        let nivelSistema = 100;
+        let timerForaSala1 = 0;
+        
+        // Configurações de Dificuldade
+        let modoDificilAtivo = false;
+        let tempoMaxMorte = 20;
+        let limiteForaSala1 = 10;
+        let drenoEnergia = 1.2;
+        let chanceAparecer = 0.06;
+
+        let inimigo2Ativo = false;
+        let inimigo3Ativo = false;
+        let timerMorte2 = 0;
+        let timerMorte3 = 0;
+        let tempoEncarando = 0;
+
+        const somBatida = new Audio('barulho.mp3');
+        const somSusto = new Audio('susto.mp3');
+        const somAmbiente = new Audio('ambiente.mp3');
+        const somVitoria = new Audio('vitoria.mp3');
+
+        function iniciarJogo(dificil) {
+            modoDificilAtivo = dificil;
+            if (modoDificilAtivo) {
+                tempoMaxMorte = 11;
+                limiteForaSala1 = 7;
+                drenoEnergia = 1.6;
+                chanceAparecer = 0.12;
+            }
+
+            [somBatida, somSusto, somAmbiente, somVitoria].forEach(s => {
+                s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(e => {});
+            });
+            somAmbiente.loop = true;
+            somAmbiente.play().catch(e => {});
+
+            document.getElementById('menu-inicial').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            jogoAtivo = true;
+            rodarLoop();
+        }
+
+        function mudarSala(nome) {
+            if (!jogoAtivo || modoManutencao) return;
+            salaAtual = nome;
+            tempoEncarando = 0;
+            if (nome === "sala1") timerForaSala1 = 0;
+            renderizar();
+        }
+
+        function alternarModo() {
+            if (!jogoAtivo) return;
+            modoManutencao = !modoManutencao;
+            document.getElementById('painel-manutencao').style.display = modoManutencao ? "flex" : "none";
+            renderizar();
+        }
+
+        function cliqueCarregar() {
+            if (nivelSistema < 100) {
+                nivelSistema += 2;
+                if (nivelSistema > 100) nivelSistema = 100;
+                atualizarInterface();
+            }
+        }
+
+        function atualizarInterface() {
+            document.getElementById('barra-fill').style.width = nivelSistema + "%";
+            document.getElementById('porcento').innerText = Math.floor(nivelSistema);
+        }
+
+        function renderizar() {
+            const tela = document.getElementById('tela-camera');
+            const risco = document.getElementById('risco-img');
+            if (modoManutencao) { risco.style.display = "none"; return; }
+
+            if (salaAtual === "sala1") {
+                tela.src = "sala1.jpg";
+                risco.style.display = inimigo3Ativo ? "block" : "none";
+            } else if (salaAtual === "sala2") {
+                tela.src = inimigo2Ativo ? "salabad2.jpg" : "sala2.jpg";
+                risco.style.display = "none";
+            } else if (salaAtual === "sala3") {
+                tela.src = inimigo3Ativo ? "salabad3.jpg" : "sala3.jpg";
+                risco.style.display = "none";
+            }
+        }
+
+        function sustoFantasma() {
+            const ghost = document.getElementById('ghost-jumpscare');
+            ghost.style.display = "flex";
+            setTimeout(() => { ghost.style.display = "none"; }, 500);
+        }
+
+        function fimDeJogo(venceu) {
+            jogoAtivo = false;
+            somAmbiente.pause();
+            const telaFim = document.getElementById('fim-tela');
+            const imgFim = document.getElementById('fim-img');
+            const msgVit = document.getElementById('msg-vitoria');
+            telaFim.style.display = "flex";
+
+            if (venceu) {
+                imgFim.src = "vitoria.jpg";
+                msgVit.style.display = "block";
+                somVitoria.play();
+            } else {
+                imgFim.src = "jumpscare.jpg";
+                imgFim.classList.add("tremida");
+                somSusto.play();
+            }
+            setTimeout(() => { location.reload(); }, venceu ? 8000 : 4000);
+        }
+
+        function rodarLoop() {
+            const gameInterval = setInterval(() => {
+                if (!jogoAtivo) { clearInterval(gameInterval); return; }
+
+                tempoRestante--;
+                nivelSistema -= drenoEnergia;
+                atualizarInterface();
+
+                // Dificuldade progressiva (Normal apenas)
+                if (!modoDificilAtivo) {
+                    if (tempoRestante <= 120 && tempoRestante > 60) { tempoMaxMorte = 15; chanceAparecer = 0.10; }
+                    if (tempoRestante <= 60) { tempoMaxMorte = 12; chanceAparecer = 0.20; }
+                }
+
+                // Susto Fantasma Aleatório no Difícil
+                if (modoDificilAtivo && Math.random() < 0.05) { sustoFantasma(); }
+
+                // Regra Sala 1
+                if (salaAtual !== "sala1" || modoManutencao) {
+                    timerForaSala1++;
+                    document.getElementById('aviso-presenca').style.display = "block";
+                    document.getElementById('seg-presenca').innerText = limiteForaSala1 - timerForaSala1;
+                } else {
+                    timerForaSala1 = 0;
+                    document.getElementById('aviso-presenca').style.display = "none";
+                }
+
+                // Spawns
+                if (!inimigo2Ativo && Math.random() < chanceAparecer) { inimigo2Ativo = true; somBatida.play(); }
+                if (!inimigo3Ativo && Math.random() < chanceAparecer) { inimigo3Ativo = true; }
+
+                // Expulsão
+                if (!modoManutencao) {
+                    if (inimigo2Ativo && salaAtual === "sala2") {
+                        tempoEncarando++;
+                        if (tempoEncarando >= 4) { inimigo2Ativo = false; timerMorte2 = 0; tempoEncarando = 0; }
+                    }
+                    if (inimigo3Ativo && salaAtual === "sala3") {
+                        tempoEncarando++;
+                        if (tempoEncarando >= 4) { inimigo3Ativo = false; timerMorte3 = 0; tempoEncarando = 0; }
+                    }
+                }
+
+                if (inimigo2Ativo) timerMorte2++;
+                if (inimigo3Ativo) timerMorte3++;
+
+                if (timerMorte2 >= tempoMaxMorte || timerMorte3 >= tempoMaxMorte || nivelSistema <= 0 || timerForaSala1 >= limiteForaSala1) {
+                    fimDeJogo(false);
+                }
+
+                let m = Math.floor(tempoRestante / 60);
+                let s = tempoRestante % 60;
+                document.getElementById('timer').innerText = `0${m}:${s < 10 ? '0'+s : s}`;
+                
+                if (tempoRestante <= 0) fimDeJogo(true);
+                renderizar();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
